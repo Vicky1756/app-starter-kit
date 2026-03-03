@@ -1,7 +1,9 @@
 package controller
 
 import (
+	"app-stater-kit/backend/packages/db"
 	"app-stater-kit/backend/packages/models"
+	"app-stater-kit/backend/packages/utils"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func Login(c echo.Context, dbConn *sql.DB) error {
@@ -20,7 +23,7 @@ func Login(c echo.Context, dbConn *sql.DB) error {
 
 	var dbUser models.User
 	// Using the query logic you established
-	err := dbConn.QueryRow("SELECT id, name, email, password FROM users WHERE email = $1", req.Email).Scan(&dbUser.ID, &dbUser.Name, &dbUser.Email, &dbUser.Password)
+	err := dbConn.QueryRow(db.LoginQuery, req.Email).Scan(&dbUser.ID, &dbUser.Name, &dbUser.Email, &dbUser.Password)
 
 	if err == sql.ErrNoRows {
 		return c.JSON(http.StatusUnauthorized, map[string]string{"message": "Invalid email or password"})
@@ -59,5 +62,56 @@ func Login(c echo.Context, dbConn *sql.DB) error {
 		Name:        dbUser.Name,
 		Email:       dbUser.Email,
 		AccessToken: t,
+	})
+}
+func CreateUser(c echo.Context, dbConn *sql.DB) error {
+	user := new(models.User)
+	if err := c.Bind(user); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Invalid request"})
+	}
+
+	//  User Validation
+	errs := utils.ValidateUser(*user)
+	if len(errs) > 0 {
+		return c.JSON(http.StatusUnprocessableEntity, map[string]interface{}{
+			"success": false,
+			"errors":  errs,
+		})
+	}
+
+	// Check existence
+	if utils.UserExists(user, dbConn) {
+		return c.JSON(http.StatusBadRequest, map[string]string{"message": "Email already exists"})
+	}
+
+	// Hash Password
+	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Error hashing password"})
+	}
+	user.Password = string(hashed)
+
+	// Timestamps
+	user.CreatedAt = time.Now()
+	user.UpdatedAt = time.Now()
+
+	// Use Scan to put the Postgres-generated ID into the user struct
+	err = dbConn.QueryRow(db.Registerquery,
+		user.Name,
+		user.Email,
+		user.Password,
+		user.CreatedAt,
+		user.UpdatedAt,
+	).Scan(&user.ID)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{"message": "Database error: " + err.Error()})
+	}
+
+	// Success Response
+	return c.JSON(http.StatusCreated, map[string]interface{}{
+		"id":    user.ID,
+		"name":  user.Name,
+		"email": user.Email,
 	})
 }

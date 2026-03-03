@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import mountainImg from '../assets/mountain_login.jpg';
+import signupImg from '../assets/signup.jpg';
 
 export default function Login({ isOpen, onClose }) {
     const [isLogin, setIsLogin] = useState(true);
@@ -7,7 +9,6 @@ export default function Login({ isOpen, onClose }) {
     const [isLoading, setIsLoading] = useState(false);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-
     if (!isOpen) return null;
 
     const toggleAuth = (e) => {
@@ -27,10 +28,10 @@ export default function Login({ isOpen, onClose }) {
         setIsLoading(true);
         
         const payload = isLogin 
-        ? { email, password } 
+        ? { email: email.toLowerCase(), password } 
         : { 
-            name: `${firstName} ${lastName}`,
-            email, 
+            name: `${firstName.trim()} ${lastName.trim()}`,
+            email: email.toLowerCase(), 
             password 
           };
         const endpoint = isLogin ? '/login' : '/register';
@@ -44,11 +45,21 @@ export default function Login({ isOpen, onClose }) {
             });
             
             const result = await response.json();
-            
             if (response.ok) {
-                console.log(`${isLogin ? "Login" : "Sign up"} successful!`, result);
-                onClose();
-            } else {
+                if (!isLogin) {
+                    setIsLogin(true);
+                    setEmail('');
+                    setPassword('');
+                    setFirstName('');
+                    setLastName('');
+                    alert("Account created! Please sign in with your details.");
+                } else {
+                    if (result.access_token) {
+                        localStorage.setItem('token', result.access_token);
+                    }
+                    onClose();
+                }
+            }else {
                 alert(result.message);
             }
         } catch (error) {
@@ -73,8 +84,8 @@ export default function Login({ isOpen, onClose }) {
                     <img 
                         className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" 
                         src={isLogin 
-                            ? "https://raw.githubusercontent.com/prebuiltui/prebuiltui/main/assets/login/leftSideImage.png" 
-                            : "https://images.unsplash.com/photo-1554188248-986adbb73be4?q=80&w=1000&auto=format&fit=crop" 
+                            ? mountainImg
+                            : signupImg
                         } 
                         alt="Auth sidebar" 
                     />
@@ -142,9 +153,25 @@ export default function Login({ isOpen, onClose }) {
 
                         <button 
                             type="submit" 
-                            className="mt-8 w-full h-12 rounded-full text-white bg-indigo-600 font-medium hover:bg-indigo-700 transition-all active:scale-[0.98] shadow-lg shadow-indigo-100"
+                            disabled={isLoading} // Prevents double-clicks
+                            className={`mt-8 w-full h-12 rounded-full text-white font-medium transition-all active:scale-[0.98] shadow-lg ${
+                                isLoading 
+                                    ? 'bg-indigo-400 cursor-not-allowed' 
+                                    : 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100'
+                            }`}
                         >
-                            {isLogin ? 'Login' : 'Join Now'}
+                            {isLoading ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                        {/* Simple SVG Spinner Circle */}
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Processing...
+                                </span>
+                            ) : (
+                                isLogin ? 'Login' : 'Join Now'
+                            )}
                         </button>
 
                         <p className="text-gray-400 text-sm mt-8">

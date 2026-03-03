@@ -12,6 +12,7 @@ func Handlers(e *echo.Echo, db *sql.DB) {
 	// Public Routes
 	e.GET("/", func(c echo.Context) error { return c.String(200, "Public API") })
 	e.POST("/login", func(c echo.Context) error { return controller.Login(c, db) })
+	e.POST("/register", func(c echo.Context) error { return controller.CreateUser(c, db) })
 
 	// Protected Routes (Grouped)
 	// r := e.Group("/api")
