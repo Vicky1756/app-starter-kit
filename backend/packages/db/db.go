@@ -34,11 +34,11 @@ func Migrate(db *sql.DB, databaseName string) error {
 		return err
 	}
 
-	dir, _ := filepath.Abs("../packages/db/migrations")
-
+	dir, err := filepath.Abs("../packages/db/migrations")
 	if err != nil {
 		return err
 	}
+
 	m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file://%s", dir), databaseName, driver)
 	if err != nil {
 		return err

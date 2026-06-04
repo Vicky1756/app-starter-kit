@@ -4,7 +4,6 @@ go 1.25.7
 
 require (
 	github.com/apex/log v1.9.0
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/joho/godotenv v1.5.1

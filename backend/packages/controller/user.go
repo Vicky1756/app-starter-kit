@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -96,7 +96,7 @@ func CreateUser(c echo.Context, dbConn *sql.DB) error {
 	user.UpdatedAt = time.Now()
 
 	// Use Scan to put the Postgres-generated ID into the user struct
-	err = dbConn.QueryRow(db.Registerquery,
+	err = dbConn.QueryRow(db.RegisterQuery,
 		user.Name,
 		user.Email,
 		user.Password,
